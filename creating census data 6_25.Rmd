@@ -1,0 +1,45 @@
+---
+title: "Census Data"
+author: "Ally Rakus"
+date: "6/25/2020"
+output: html_document
+---
+Creating my Census API Key 
+```{r}
+
+library(tidycensus)
+
+census_api_key("d432da892f8a6ce576e962e7170b27cf7ef13f8d", overwrite = TRUE, install = TRUE) 
+
+```
+
+Looking at the Census Variables
+```{r}
+v18 <- load_variables(2018, "acs5", cache = TRUE)
+v18
+```
+
+*Maxwell used B23001 for unemployment 
+
+Call for the variables I need 
+  **I got stuck trying to figure out which employment variables I should be using 
+```{r}
+bmore_census_data_6_25 <- get_acs(
+  geography = "tract", 
+  state = "MD",
+  county = c("510"),
+  variables = c(
+    "hh_inc_med" = "B19013_001", # median household inc
+    "pov_pct" = "C17002_001",# poverty rate
+    "educ_attain" = "B15003_001", #educational attainment
+    "unemploy_indic" = "B23001_001", #unemployment-ish
+    "race_maybe" = "B02001_001"), #possibly race
+  
+  survey = "acs5",
+  output = "wide",
+  geometry = FALSE)
+bmore_census_data_6_25
+```
+
+```
+
