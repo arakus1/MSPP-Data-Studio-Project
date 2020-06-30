@@ -15,9 +15,10 @@ library(ggplot2) # making plots
 
 Import the crime data
 ```{r}
-library(lubridate)
+library(readr)
+bmore_crime_data_6_22 <- read_csv("C:/Users/araku/Dropbox/policy analysis/Summer Class/bmore crime data_6_22.csv")
 
-bmore_crime_data_6_22 <- read_csv("bmore crime data_6_22.csv") 
+bmore_crime_data_6_22
 
 ```
 View(bmore_crime_data_6_22)
@@ -28,12 +29,21 @@ CLEANING
 *will clean time permitting 
 *skipped to making a visual 
 
-x. Making a visual w ggplot 
-```{r layout="l-body-outset"}
-ggplot(bmore_crime_data_6_22) +
-  aes(x = District, y = )
-  geom_point(size = 0.5, alpha = 0.25) +
-  geom_smooth() +
-  theme_minimal()
+x. Making a visual w ggplot
+```{r}
+graph_data <- bmore_crime_data_6_22 %>%
+  filter(Description == "Larceny" && "Larceny from Auto" && "Burglary") %>%
+  group_by(District) %>%
+  summarise(n_incidents = n()) %>%
+ungroup()
+
+graph_data
 ```
+
+```{r layout="l-body-outset"}
+ggplot(data = graph_data) +
+  aes(x = District, y = n_incidents)
+   geom_col()
+```
+
 

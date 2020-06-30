@@ -83,18 +83,16 @@ bmore_census_educ
 Creating variables: 
 ```{r}
 bmore_census_education <- bmore_census_educ %>%
-  mutate 
-  (pop_edu_denom = "B15003_001E")
-%>%
-  rowwise()%>%
-  mutate(pop_edu_hs_num = moe_sum(c_across(c(matches("B15003_e{0,2}[17:18*]"))))
- )
-ungroup()%>% 
-
-rowwise() %>%
+  mutate(pop_edu_denom = "B15003_001E") %>%
+  rowwise() %>%
   mutate(
-pop_edu_somecoll_plus = moe_sum(c_across(c(matches("B15003_e{19:25*}")))),
-) %>%
+    pop_edu_hs_num = moe_sum(c_across(c(matches("B15003_e{0,2}[17:18*]"))))) %>%
+  ungroup() %>%
+  rowwise() %>%
+  mutate(
+    pop_edu_somecoll_plus = moe_sum(c_across(c(matches("B15003_e{19:25*}"))))
+  ) %>%
+  ungroup()
 ungroup()
   
 bmore_census_education
