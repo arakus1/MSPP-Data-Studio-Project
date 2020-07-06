@@ -12,10 +12,14 @@ library(readr) # read/write dataframes
 library(ggplot2) # making plots
 ```
 
-Import the crime data
+Import the crime data and reformat the date into the R date type (Y-M-D)
 ```{r}
 library(readr)
-bmore_crime_data_6_22 <- read_csv("C:/Users/araku/Dropbox/policy analysis/Summer Class/bmore crime data_6_22.csv")
+bmore_crime_data_6_22 <- read_csv("C:/Users/araku/Dropbox/policy analysis/Summer Class/bmore crime data_6_22.csv",
+ col_types = cols(
+   CrimeDate = col_date(format = "%m/%d/%Y")
+ )
+)
 
 bmore_crime_data_6_22
 

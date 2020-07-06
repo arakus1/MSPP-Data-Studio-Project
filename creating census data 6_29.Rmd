@@ -154,16 +154,26 @@ bmore_census_race <- get_acs(
 bmore_census_race
 ```
 Creating the variables: 
-B02001_001 total estimate 
-B02001_002 total white alone 
-B02001_003 total black alone 
-B02001_009 2 or more races 
-
-other variables not from table: 
-B02009_001 black alone and black w other races - think I might want to use this to measure black community not other v 
-
 ```{r}
+bmore_census_r<- get_acs(
+  geography = "tract", 
+  state = "MD",
+  county = c("510"),
+  variables = c(
+    "race_denom" = "B02001_001",
+    "black_num" = "B02009_001"),
+  survey = "acs5",
+  output = "wide",
+  geometry = FALSE)
 
+bmore_census_r
+```
+```{r}
+bmore_census_race <- bmore_census_r %>% 
+  mutate(
+    pct_black_est = black_numE / na_if(race_denomE,0),
+    pct_black_moe = moe_prop(black_numE, na_if(race_denomE,0), black_numM, race_denomM)
+  )
 ```
 
 

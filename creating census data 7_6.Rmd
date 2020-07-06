@@ -142,6 +142,7 @@ bmore_census_r<- get_acs(
 
 bmore_census_r
 ```
+
 Creating the race variable: percent black or black and other races 
 ```{r}
 bmore_census_race <- bmore_census_r %>% 
