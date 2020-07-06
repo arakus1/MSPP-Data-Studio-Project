@@ -150,7 +150,23 @@ bmore_census_race <- bmore_census_r %>%
     pct_black_est = black_numE / na_if(race_denomE,0),
     pct_black_moe = moe_prop(black_numE, na_if(race_denomE,0), black_numM, race_denomM)
   )
+
+bmore_census_race
 ```
 
+**Need to do: 
+MAPPING 
+1. clean up census data to be mapped
+2. create heat maps: tract level 
+  -percentage of pop as black 
+  -income distribution  
+  -education distribution
+  -poverty distribution 
+  -unemployment distribution
+  
+REGRESSIONS
+3. merge data frames together via geoid
+4. merge with crime data 
+5. run basic regressions 
 
 

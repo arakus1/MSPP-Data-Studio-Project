@@ -43,7 +43,7 @@ bmore_crime_data_2014_2018 %>% get_dupes
 
 Filtering for incidents considered to be property crime 
 ```{r}
-bmore_property_crime_2014_2018 <- filter(bmore_crime_data_2014_2018, Description %in% c("BURGLARY", "LARCENY", "LARCENY FROM AUTO", "AUTO THEFT", "ARSON", "ROBBERY - STREET", "ROBBERY - CARJACKING", "ROBBERY - COMMERICAL", "ROBBERY - RESIDENCE")
+bmore_property_crime_2014_2018 <- filter(bmore_crime_data_2014_2018, Description %in% c("BURGLARY", "LARCENY", "LARCENY FROM AUTO", "AUTO THEFT", "ARSON", "ROBBERY - STREET", "ROBBERY - CARJACKING", "ROBBERY - COMMERCIAL", "ROBBERY - RESIDENCE")
 )
 
 bmore_property_crime_2014_2018
@@ -61,6 +61,22 @@ bmore_property_crime_2014_2018 %>%
   filter(!Latitude == "NA")
 
 ```
+
+Graph Attempt 1 - ok
+```{r}
+counts <- table(bmore_property_crime_2014_2018$Description)
+barplot(counts, main="Distribution of Crime", horiz=TRUE)
+
+```
+**Need to do: 
+GRAPH
+1. refine bar graph showing the distribution of crime types 
+
+REGRESSION
+2. prep data to be merged with census data
+3. merge with census data
+4. run basic regressions 
+
 
 
 
