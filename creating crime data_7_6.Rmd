@@ -35,8 +35,25 @@ bmore_crime_data_2014_2018
 
 Removing duplicate rows 
 ```{r}
-bmore_crime_data_2014_2018 %>% distinct()
+library(janitor)
+bmore_crime_data_2014_2018 %>% get_dupes
+
 ```
+
+Filtering for incidents considered to be property crime 
+```{r}
+bmore_property_crime_2014_2018 <- filter(bmore_crime_data_2014_2018, Description %in% c("BURGLARY", "LARCENY", "LARCENY FROM AUTO", "AUTO THEFT", "ARSON", "ROBBERY - STREET", "ROBBERY - CARJACKING", "ROBBERY - COMMERICAL", "ROBBERY - RESIDENCE")
+)
+
+bmore_property_crime_2014_2018
+```
+
+Assigning a unique ID to each obs
+```{r}
+bmore_property_crime_2014_2018 %>% mutate(id = row_number())
+```
+
+
 
 
 
