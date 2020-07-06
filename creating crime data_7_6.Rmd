@@ -26,6 +26,7 @@ bmore_crime_data_6_22 <- read_csv(path("bmore crime data_6_22.csv"),
 bmore_crime_data_6_22
 
 ```
+
 Filtering for incidents that occurred in years that match the census data (2014-2018)
 ```{r}
 bmore_crime_data_2014_2018 <- filter(bmore_crime_data_6_22, between(CrimeDate, as.Date("2014-01-01"),as.Date("2018-12-31")))
@@ -53,6 +54,13 @@ Assigning a unique ID to each obs
 bmore_property_crime_2014_2018 %>% mutate(id = row_number())
 ```
 
+Getting rid of incidents without coordinates/lat-long data
+```{r}
+bmore_property_crime_2014_2018 %>% 
+  filter(!Longitude == "NA") %>% 
+  filter(!Latitude == "NA")
+
+```
 
 
 
