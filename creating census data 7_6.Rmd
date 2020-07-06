@@ -9,6 +9,7 @@ Creating my Census API Key
 ```{r}
 library(tidyverse)
 library(tidycensus)
+library(sf)
 
 census_api_key("d432da892f8a6ce576e962e7170b27cf7ef13f8d", overwrite = TRUE, install = TRUE) 
 
@@ -138,7 +139,9 @@ bmore_census_r<- get_acs(
     "black_num" = "B02009_001"),
   survey = "acs5",
   output = "wide",
-  geometry = FALSE)
+  geometry = TRUE) %>% 
+  as_tibble() %>% # for nicer printing
+  st_as_sf() # make sure to add back the spatial class
 
 bmore_census_r
 ```
@@ -156,6 +159,9 @@ bmore_census_race
 
 Creating one dataframe for all the new variables/dataframes
 ```{r}
+# Because "bmore_census_race" is a spatial dataframe, when we join onto it all
+# the resulting dataframes keep the spatial class.
+
 bmore_census_data_f <- left_join(bmore_census_race, bmore_census_education, by = "GEOID")
 
 bmore_census_data_fi <- left_join(bmore_census_data_f, bmore_census_unemployment, by = "GEOID")
@@ -165,6 +171,37 @@ bmore_census_data_merged <- left_join(bmore_census_data_fi, bmore_census_inc_pov
 bmore_census_data_MERGED_FINAL <- bmore_census_data_merged %>% select(GEOID, pct_black_est, pct_black_moe, noHS_educ_pct, noHS_educ_pct_moe, somecollege_plus_pct, somecollege_plus_pct_moe, unemploy_rate_est, unemploy_rate_moe, hh_inc_medE, hh_inc_medM, pov_pctE, pov_pctM)
 
 bmore_census_data_MERGED_FINAL
+```
+
+```{r}
+library(leaflet)
+
+pop_blck_pct_pal <- colorBin(
+  palette = viridisLite::viridis(5), 
+  domain = bmore_census_data_MERGED_FINAL$pct_black_est, 
+  n = 4
+)
+
+bmore_census_data_MERGED_FINAL %>% 
+  # You should always re-project your data into lat/lon 4326 CRS
+  st_transform(4326) %>% 
+  leaflet() %>% 
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addPolygons(
+    fillColor = ~pop_blck_pct_pal(pct_black_est),
+    fillOpacity = 0.7,
+    color = "white",
+    weight = 0.5,
+    group = "Black Population Share"
+  ) %>% 
+  addLayersControl(
+    overlayGroups = c("Black Population Share"),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>% 
+  showGroup(c("Black Population Share"))
+  # # you can put all the other layers excep tofr the one you want to show by default. 
+  # hideGroup(c()) 
+  
 ```
 
 
