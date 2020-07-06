@@ -33,6 +33,11 @@ bmore_crime_data_2014_2018 <- filter(bmore_crime_data_6_22, between(CrimeDate, a
 bmore_crime_data_2014_2018
 ```
 
+Removing duplicate rows 
+```{r}
+bmore_crime_data_2014_2018 %>% distinct()
+```
+
 
 
 
