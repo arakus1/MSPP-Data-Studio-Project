@@ -154,9 +154,24 @@ bmore_census_race <- bmore_census_r %>%
 bmore_census_race
 ```
 
+Creating one dataframe for all the new variables/dataframes
+```{r}
+bmore_census_data_f <- left_join(bmore_census_race, bmore_census_education, by = "GEOID")
+
+bmore_census_data_fi <- left_join(bmore_census_data_f, bmore_census_unemployment, by = "GEOID")
+
+bmore_census_data_merged <- left_join(bmore_census_data_fi, bmore_census_inc_pov, by = "GEOID")
+
+bmore_census_data_MERGED_FINAL <- bmore_census_data_merged %>% select(GEOID, pct_black_est, pct_black_moe, noHS_educ_pct, noHS_educ_pct_moe, somecollege_plus_pct, somecollege_plus_pct_moe, unemploy_rate_est, unemploy_rate_moe, hh_inc_medE, hh_inc_medM, pov_pctE, pov_pctM)
+
+bmore_census_data_MERGED_FINAL
+```
+
+
+
+
 **Need to do: 
 MAPPING 
-1. clean up census data to be mapped
 2. create heat maps: tract level 
   -percentage of pop as black 
   -income distribution  
@@ -165,7 +180,6 @@ MAPPING
   -unemployment distribution
   
 REGRESSIONS
-3. merge data frames together via geoid
 4. merge with crime data 
 5. run basic regressions 
 
