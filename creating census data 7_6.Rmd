@@ -37,7 +37,7 @@ bmore_census_inc_pov <- get_acs(
   geometry = FALSE)
 bmore_census_inc_pov
 ```
-2. Calling for the unemployment table then manipulating that data 
+2. Calling for the unemployment table
 ```{r}
 bmore_census_unemploy <- get_acs(
   geography = "tract", 
@@ -51,19 +51,6 @@ bmore_census_unemploy
 ```
 Creating variables: labor force, unemployed, unemployment rate
 ```{r}
-
-# These operations with rowwise() can be quite confusing, but unfortunately it's
-# necessary given how the moe_sum() function works. The regular expression is
-# also a bit confusing, but is also a bit easier to read than if you had to
-# write out every variable name in full. What the matches() is doing is
-# selecting all the columns whose names match this regular expression. And the
-# regular expression (regex) is a way to concisely write a pattern that it
-# should match. My first attempt at this wasn't actually working as intended. I
-# did some testing and this works now. You can see how i tested it out here
-# https://regex101.com/r/KGti8P/1 I copied the names from the dataset and then
-# wrote the regex and made sure it was selecting everything we wanted (and
-# nothing extra!)
-
 bmore_census_unemployment <- bmore_census_unemploy %>% 
   rowwise() %>% 
   mutate(
@@ -96,7 +83,7 @@ bmore_census_unemployment <- bmore_census_unemploy %>%
 bmore_census_unemployment %>% 
   select(-matches("B\\d{5}_\\d{3}."))
 ```
-3. Calling the education table then manipulating that data 
+3. Calling the education table
 ```{r}
 bmore_census_educ <- get_acs(
   geography = "tract", 
@@ -108,7 +95,7 @@ bmore_census_educ <- get_acs(
   geometry = FALSE)
 bmore_census_educ
 ```
-Creating variables: 
+Creating variables: no high school education, some college or more education 
 ```{r}
 bmore_census_education <- bmore_census_educ %>%
   mutate(
@@ -140,20 +127,7 @@ bmore_census_education %>%
   select(-matches("B\\d{5}_\\d{3}."))
 ```
 
-
-4. Calling race/ethnicity table then manipulating that data 
-```{r}
-bmore_census_race <- get_acs(
-  geography = "tract", 
-  state = "MD",
-  county = c("510"),
-  table = "B02001",
-  survey = "acs5",
-  output = "wide",
-  geometry = FALSE)
-bmore_census_race
-```
-Creating the variables: 
+Calling the race variables 
 ```{r}
 bmore_census_r<- get_acs(
   geography = "tract", 
@@ -168,6 +142,7 @@ bmore_census_r<- get_acs(
 
 bmore_census_r
 ```
+Creating the race variable: percent black or black and other races 
 ```{r}
 bmore_census_race <- bmore_census_r %>% 
   mutate(
