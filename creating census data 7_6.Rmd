@@ -175,18 +175,28 @@ bmore_census_data_MERGED_FINAL
 
 ```{r}
 library(leaflet)
+library(RColorBrewer)
 
+#color palette for black population layer
 pop_blck_pct_pal <- colorBin(
   palette = viridisLite::viridis(5), 
   domain = bmore_census_data_MERGED_FINAL$pct_black_est, 
   n = 4
 )
+#color palette for unemployment rate 
+unemployment_pal <- colorBin(
+  palette = viridisLite::viridis(5), 
+  domain = bmore_census_data_MERGED_FINAL$unemploy_rate_est, 
+  n = 4
+)
 
+#creating the map
 bmore_census_data_MERGED_FINAL %>% 
-  # You should always re-project your data into lat/lon 4326 CRS
   st_transform(4326) %>% 
   leaflet() %>% 
   addProviderTiles(providers$CartoDB.Positron) %>%
+  
+#plotting the black population layer 
   addPolygons(
     fillColor = ~pop_blck_pct_pal(pct_black_est),
     fillOpacity = 0.7,
@@ -194,13 +204,36 @@ bmore_census_data_MERGED_FINAL %>%
     weight = 0.5,
     group = "Black Population Share"
   ) %>% 
+  
+#plotting the unemployment rate layer 
+  addPolygons(
+    fillColor = ~unemployment_pal(unemploy_rate_est),
+    fillOpacity = 0.7,
+    color = "white",
+    weight = 0.5,
+    group = "Unemployment Rate"
+  ) %>% 
   addLayersControl(
-    overlayGroups = c("Black Population Share"),
+    overlayGroups = c("Black Population Share", "Unemployment Rate"),
     options = layersControlOptions(collapsed = FALSE)
   ) %>% 
-  showGroup(c("Black Population Share"))
-  # # you can put all the other layers excep tofr the one you want to show by default. 
-  # hideGroup(c()) 
+  showGroup(c("Black Population Share")) %>% 
+
+#creating the legend for black population
+  addLegend(
+    position = "topleft", 
+    pal = pop_blck_pct_pal, 
+    values = ~pct_black_est, 
+    title = "Black Population Share<br>by Census Tract (2014-2018)"
+  ) %>% 
+
+#creating the legend for the unemployment rate    
+  addLegend(
+    position = "topright", 
+    pal = unemployment_pal, 
+    values = ~unemploy_rate_est, 
+    title = "Unemployment Rate<br>by Census Tract (2014-2018)"
+  )
   
 ```
 
