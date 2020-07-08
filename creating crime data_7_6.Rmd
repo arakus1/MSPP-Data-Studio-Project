@@ -69,11 +69,54 @@ Transforming the lat/lon data into spatial points
 ```{r}
 library(sf)
 
-bmore_property_crime_2014_2018_sf <- st_as_sf(bmore_property_crime_2014_2018, coords = c("Latitude", "Longitude"), crs = 4326, na.fail = FALSE)
-  
-bmore_property_crime_2014_2018_sf_map <- st_transform(bmore_property_crime_2014_2018_sf, 2263)
+bmore_property_crime_2014_2018_sf <- bmore_property_crime_2014_2018 %>% 
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326, na.fail = FALSE) %>% 
+  st_transform(6487) # https://epsg.io/6487
+```
 
-bmore_property_crime_2014_2018_sf_map
+```{r}
+library(tidycensus)
+
+census_api_key("d432da892f8a6ce576e962e7170b27cf7ef13f8d", overwrite = TRUE, install = TRUE) 
+
+bmore_tracts_pop <- get_acs(
+  geography = "tract", 
+  state = "MD",
+  county = c("510"),
+  variables = c("pop_num" = "B01001_001"),
+  survey = "acs5",
+  output = "wide",
+  year = 2018,
+  geometry = TRUE
+) %>% 
+  st_transform(6487)
+```
+
+```{r}
+
+# When joining multiple points to single polygon we'll end up with a row for
+# every point with all the data from the poloygon repeated. So to aggregate all
+# those points up by tract, we can group by tract and use summarise. Since the
+# ACS columns are just repeated for all the rows with the same tract ID we can
+# just take the max() to get that same original value. Meanwhile for getting the
+# cout of crimes, since each crime is represented by a row (point) in the crime
+# data, we can just count up the rows with n(). Now we have a dataset with a row for each tract, the population, and the number of crimes. 
+
+bmore_crime_tract <- bmore_tracts_pop %>% 
+  st_join(bmore_property_crime_2014_2018_sf, join = st_intersects) %>% 
+  # If you need a row for each year*tract combination, you can add year to the
+  # group_by. But I think for what you're doing it makes sense to aggregate over
+  # all the years since all the ACS data is done that way as 2014-2018 estimates
+  # group_by(GEOID, year) %>%
+  group_by(GEOID) %>% 
+  summarise(
+    pop_numE = max(pop_numE),
+    pop_numM = max(pop_numM),
+    n_crimes = n()
+  ) %>% 
+  ungroup()
+  
+ bmore_crime_tract 
 ```
 
 ```{r}
