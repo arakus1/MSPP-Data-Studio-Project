@@ -15,12 +15,6 @@ census_api_key("d432da892f8a6ce576e962e7170b27cf7ef13f8d", overwrite = TRUE, ins
 
 ```
 
-Looking at the Census Variables
-```{r}
-v18 <- load_variables(2018, "acs5", cache = TRUE)
-v18
-```
-
 Calling the variables I need: income, poverty rate, educational attainment, unemployment, race/ethnicity
 
 1. Calling for income and poverty rate 
@@ -176,6 +170,7 @@ bmore_census_data_MERGED_FINAL
 ```{r}
 library(leaflet)
 library(RColorBrewer)
+library(htmlwidgets)
 
 #color palette for black population layer
 pop_blck_pct_pal <- colorBin(
@@ -233,8 +228,8 @@ bmore_census_data_MERGED_FINAL %>%
     pal = unemployment_pal, 
     values = ~unemploy_rate_est, 
     title = "Unemployment Rate<br>by Census Tract (2014-2018)"
-  )
-  
+  ) 
+
 ```
 
 
