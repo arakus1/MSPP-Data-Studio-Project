@@ -245,13 +245,6 @@ htmlwidgets::saveWidget(census_map, "census_map.html", selfcontained = TRUE)
 
 
 **Need to do: 
-MAPPING 
-2. create heat maps: tract level 
-  -percentage of pop as black 
-  -income distribution  
-  -education distribution
-  -poverty distribution 
-  -unemployment distribution
   
 REGRESSIONS
 4. merge with crime data 

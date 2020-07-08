@@ -54,23 +54,35 @@ Assigning a unique ID to each obs
 bmore_property_crime_2014_2018 %>% mutate(id = row_number())
 ```
 
-Getting rid of incidents without coordinates/lat-long data
+Getting rid of incidents without coordinates/lat-long data and keeping variables of interest
 ```{r}
 bmore_property_crime_2014_2018 %>% 
   filter(!Longitude == "NA") %>% 
-  filter(!Latitude == "NA")
+  filter(!Latitude == "NA") %>% 
+  select(Latitude, Longitude, District, Description, CrimeTime, CrimeDate)
 
 ```
 
-Graph Attempt 1 - ok
+Transforming the lat/lon data into spatial points 
+
+**na.fail = false dropped datapoints with missing values
 ```{r}
-counts <- table(bmore_property_crime_2014_2018$Description)
-barplot(counts, main="Distribution of Crime", horiz=TRUE)
+library(sf)
 
+bmore_property_crime_2014_2018_sf <- st_as_sf(bmore_property_crime_2014_2018, coords = c("Latitude", "Longitude"), crs = 4326, na.fail = FALSE)
+  
+bmore_property_crime_2014_2018_sf_map <- st_transform(bmore_property_crime_2014_2018_sf, 2263)
+
+bmore_property_crime_2014_2018_sf_map
 ```
+
+```{r}
+ggplot() +
+  geom_sf(data = bmore_property_crime_2014_2018_sf) +
+  geom_sf(data = bmore_census_data_MERGED_FINAL)
+```
+
 **Need to do: 
-GRAPH
-1. refine bar graph showing the distribution of crime types 
 
 REGRESSION
 2. prep data to be merged with census data
