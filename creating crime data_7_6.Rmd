@@ -8,7 +8,7 @@ output: github_document
 Calling the packages 
 ```{r message=FALSE}
 library(dplyr) # manipulate dataframes
-library(readr) # read/write dataframes
+library(readr) # read/write3 dataframes
 library(ggplot2) # making plots
 ```
 
@@ -74,6 +74,7 @@ bmore_property_crime_2014_2018_sf <- bmore_property_crime_2014_2018 %>%
   st_transform(6487) # https://epsg.io/6487
 ```
 
+Calling Census population data - helpful for creating crime rate for the census tracts
 ```{r}
 library(tidycensus)
 
@@ -118,12 +119,110 @@ bmore_crime_tract <- bmore_tracts_pop %>%
   
  bmore_crime_tract 
 ```
-
+Making a crime map - crime count 
 ```{r}
+library(leaflet)
+library(htmlwidgets)
+
+#color palette for crime quantity
+crime_quant_pal <- colorBin(
+  palette = viridisLite::viridis(5), 
+  domain = bmore_crime_tract$n_crimes, 
+  n = 4
+)
+
+#creating the map
+crime_map_1 <- bmore_crime_tract %>% 
+  st_transform(4326) %>% 
+  leaflet() %>% 
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  
+#plotting the black population layer 
+  addPolygons(
+    fillColor = ~crime_quant_pal(n_crimes),
+    fillOpacity = 0.7,
+    color = "white",
+    weight = 0.5,
+    group = "Crime Count"
+  ) %>% 
+  
+  addLayersControl(
+    overlayGroups = c("Crime Count"),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>% 
+  showGroup(c("Crime Count")) %>% 
+
+#creating the legend for black population
+  addLegend(
+    position = "topleft", 
+    pal = crime_quant_pal, 
+    values = ~n_crimes, 
+    title = "Crime Count<br>by Census Tract (2014-2018)",
+    labFormat = labelFormat(suffix = "%")
+  )
+
+crime_map_1
+```
+
+Creating the crime rate per census tract variable 
+```{r}
+bmore_crime_rate_tract <- bmore_crime_tract %>% 
+  mutate(
+    crime_rate = n_crimes / na_if(pop_numE,0),
+    crime_rate_moe = moe_prop(n_crimes, na_if(pop_numE,0), n_crimes, pop_numM)
+  )
+
+bmore_crime_rate_tract
+```
+
+Creating crime map 2 - crime rate per census tract 
+```{r}
+library(leaflet)
+library(htmlwidgets)
+
+#color palette for crime quantity
+crime_rate_pal <- colorBin(
+  palette = viridisLite::viridis(5), 
+  domain = bmore_crime_rate_tract$crime_rate, 
+  n = 4
+)
+
+#creating the map
+crime_map_2 <- bmore_crime_rate_tract %>% 
+  st_transform(4326) %>% 
+  leaflet() %>% 
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  
+#plotting the black population layer 
+  addPolygons(
+    fillColor = ~crime_rate_pal(crime_rate),
+    fillOpacity = 0.7,
+    color = "white",
+    weight = 0.5,
+    group = "Crime Rate"
+  ) %>% 
+  
+  addLayersControl(
+    overlayGroups = c("Crime Rate"),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>% 
+  showGroup(c("Crime Rate")) %>% 
+
+#creating the legend for black population
+  addLegend(
+    position = "topleft", 
+    pal = crime_rate_pal, 
+    values = ~crime_rate, 
+    title = "Crime Rate<br>by Census Tract (2014-2018)",
+    labFormat = labelFormat(suffix = "%")
+  )
+
+crime_map_2
+```
+
 ggplot() +
   geom_sf(data = bmore_property_crime_2014_2018_sf) +
   geom_sf(data = bmore_census_data_MERGED_FINAL)
-```
 
 **Need to do: 
 

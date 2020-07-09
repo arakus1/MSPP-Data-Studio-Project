@@ -169,7 +169,6 @@ bmore_census_data_MERGED_FINAL
 
 ```{r}
 library(leaflet)
-library(RColorBrewer)
 library(htmlwidgets)
 
 #color palette for black population layer
