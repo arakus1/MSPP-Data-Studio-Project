@@ -173,8 +173,11 @@ htmlwidgets::saveWidget(crime_map_2018, "census_map_2018.html", selfcontained = 
 Analysis: 
 1. merge the census and crime data by geoid
 2. correlation coefficient 
+
+#NOT WORKING
 ```{r}
-st_join(bmore_crime_rate_2018, bmore_unemployment_rate, by = "GEOID")
+left_join(bmore_unemployment_rate, bmore_crime_rate_2018, by = "GEOID")
+
 ```
 
 
