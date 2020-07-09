@@ -170,13 +170,14 @@ crime_map_2018
 htmlwidgets::saveWidget(crime_map_2018, "census_map_2018.html", selfcontained = TRUE)
 ```
 
-labFormat = labelFormat(suffix = "%") 
+Analysis: 
+1. merge the census and crime data by geoid
+2. correlation coefficient 
+```{r}
+st_join(bmore_crime_rate_2018, bmore_unemployment_rate, by = "GEOID")
+```
 
-**Need to do: 
 
-REGRESSION
-3. merge with census data
-4. run basic regressions 
 
 
 

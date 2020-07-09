@@ -239,14 +239,12 @@ htmlwidgets::saveWidget(census_map, "census_map_final.html", selfcontained = TRU
 
 ```
 
+Prepping 2018 Unemployment data: 
+```{r}
+bmore_unemployment_rate <- bmore_census_data_MERGED_FINAL %>% 
+  select(GEOID, unemploy_rate_est, unemploy_rate_moe, geometry)
 
-
-
-
-**Need to do: 
-  
-REGRESSIONS
-4. merge with crime data 
-5. run basic regressions 
+bmore_unemployment_rate
+```
 
 
