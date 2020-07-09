@@ -185,7 +185,7 @@ unemployment_pal <- colorBin(
 )
 
 #creating the map
-census_map <- bmore_census_data_MERGED_FINAL %>% 
+census_map_final <- bmore_census_data_MERGED_FINAL %>% 
   st_transform(4326) %>% 
   leaflet() %>% 
   addProviderTiles(providers$CartoDB.Positron) %>%
@@ -196,7 +196,7 @@ census_map <- bmore_census_data_MERGED_FINAL %>%
     fillOpacity = 0.7,
     color = "white",
     weight = 0.5,
-    group = "Black Population Share"
+    group = "Black Population Percentage"
   ) %>% 
   
 #plotting the unemployment rate layer 
@@ -210,18 +210,18 @@ census_map <- bmore_census_data_MERGED_FINAL %>%
 
   
   addLayersControl(
-    overlayGroups = c("Black Population Share", "Unemployment Rate"),
+    overlayGroups = c("Black Population Percentage", "Unemployment Rate"),
     options = layersControlOptions(collapsed = FALSE)
   ) %>% 
-  showGroup(c("Black Population Share")) %>% 
+  showGroup(c("Black Population Percentage")) %>% 
 
 #creating the legend for black population
   addLegend(
     position = "topleft", 
     pal = pop_blck_pct_pal, 
     values = ~pct_black_est, 
-    title = "Black Population Share<br>by Census Tract (2014-2018)",
-    labFormat = labelFormat(suffix = "%")
+    title = "Black Population Percentage<br>by Census Tract (2014-2018)",
+    labFormat = labelFormat(suffix = "%", transform = function(x) 100 * x)
   ) %>% 
 
 #creating the legend for the unemployment rate    
@@ -230,12 +230,12 @@ census_map <- bmore_census_data_MERGED_FINAL %>%
     pal = unemployment_pal, 
     values = ~unemploy_rate_est, 
     title = "Unemployment Rate<br>by Census Tract (2014-2018)",
-    labFormat = labelFormat(suffix = "%")
+    labFormat = labelFormat(suffix = "%", transform = function(x) 100 * x)
   )
 
-census_map
+census_map_final
 
-htmlwidgets::saveWidget(census_map, "census_map.html", selfcontained = TRUE)
+htmlwidgets::saveWidget(census_map, "census_map_final.html", selfcontained = TRUE)
 
 ```
 

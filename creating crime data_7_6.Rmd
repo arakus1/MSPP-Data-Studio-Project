@@ -56,10 +56,13 @@ bmore_property_crime_2014_2018 %>% mutate(id = row_number())
 
 Getting rid of incidents without coordinates/lat-long data and keeping variables of interest
 ```{r}
+
 bmore_property_crime_2014_2018 %>% 
   filter(!Longitude == "NA") %>% 
   filter(!Latitude == "NA") %>% 
-  select(Latitude, Longitude, District, Description, CrimeTime, CrimeDate)
+  select(Latitude, Longitude, District, Description, CrimeTime, CrimeDate) 
+
+bmore_property_crime_dates
 
 ```
 
@@ -95,21 +98,10 @@ bmore_tracts_pop <- get_acs(
 
 ```{r}
 
-# When joining multiple points to single polygon we'll end up with a row for
-# every point with all the data from the poloygon repeated. So to aggregate all
-# those points up by tract, we can group by tract and use summarise. Since the
-# ACS columns are just repeated for all the rows with the same tract ID we can
-# just take the max() to get that same original value. Meanwhile for getting the
-# cout of crimes, since each crime is represented by a row (point) in the crime
-# data, we can just count up the rows with n(). Now we have a dataset with a row for each tract, the population, and the number of crimes. 
-
 bmore_crime_tract <- bmore_tracts_pop %>% 
-  st_join(bmore_property_crime_2014_2018_sf, join = st_intersects) %>% 
-  # If you need a row for each year*tract combination, you can add year to the
-  # group_by. But I think for what you're doing it makes sense to aggregate over
-  # all the years since all the ACS data is done that way as 2014-2018 estimates
-  # group_by(GEOID, year) %>%
-  group_by(GEOID) %>% 
+  st_join(bmore_property_crime_2014_2018_sf, join = st_intersects) %>%
+  mutate(year = year(CrimeDate)) %>%
+  group_by(GEOID, year) %>%
   summarise(
     pop_numE = max(pop_numE),
     pop_numM = max(pop_numM),
@@ -119,60 +111,17 @@ bmore_crime_tract <- bmore_tracts_pop %>%
   
  bmore_crime_tract 
 ```
-Making a crime map - crime count 
-```{r}
-library(leaflet)
-library(htmlwidgets)
-
-#color palette for crime quantity
-crime_quant_pal <- colorBin(
-  palette = viridisLite::viridis(5), 
-  domain = bmore_crime_tract$n_crimes, 
-  n = 4
-)
-
-#creating the map
-crime_map_1 <- bmore_crime_tract %>% 
-  st_transform(4326) %>% 
-  leaflet() %>% 
-  addProviderTiles(providers$CartoDB.Positron) %>%
-  
-#plotting the black population layer 
-  addPolygons(
-    fillColor = ~crime_quant_pal(n_crimes),
-    fillOpacity = 0.7,
-    color = "white",
-    weight = 0.5,
-    group = "Crime Count"
-  ) %>% 
-  
-  addLayersControl(
-    overlayGroups = c("Crime Count"),
-    options = layersControlOptions(collapsed = FALSE)
-  ) %>% 
-  showGroup(c("Crime Count")) %>% 
-
-#creating the legend for black population
-  addLegend(
-    position = "topleft", 
-    pal = crime_quant_pal, 
-    values = ~n_crimes, 
-    title = "Crime Count<br>by Census Tract (2014-2018)",
-    labFormat = labelFormat(suffix = "%")
-  )
-
-crime_map_1
-```
 
 Creating the crime rate per census tract variable 
 ```{r}
-bmore_crime_rate_tract <- bmore_crime_tract %>% 
+bmore_crime_rate_2018 <- bmore_crime_tract %>% 
+  filter(year == "2018") %>% 
   mutate(
-    crime_rate = n_crimes / na_if(pop_numE,0),
+    crime_rate = (n_crimes / na_if(pop_numE,0))*1000,
     crime_rate_moe = moe_prop(n_crimes, na_if(pop_numE,0), n_crimes, pop_numM)
   )
 
-bmore_crime_rate_tract
+bmore_crime_rate_2018
 ```
 
 Creating crime map 2 - crime rate per census tract 
@@ -183,12 +132,12 @@ library(htmlwidgets)
 #color palette for crime quantity
 crime_rate_pal <- colorBin(
   palette = viridisLite::viridis(5), 
-  domain = bmore_crime_rate_tract$crime_rate, 
+  domain = bmore_crime_rate_2018$crime_rate, 
   n = 4
 )
 
 #creating the map
-crime_map_2 <- bmore_crime_rate_tract %>% 
+crime_map_2018 <- bmore_crime_rate_2018 %>% 
   st_transform(4326) %>% 
   leaflet() %>% 
   addProviderTiles(providers$CartoDB.Positron) %>%
@@ -199,35 +148,33 @@ crime_map_2 <- bmore_crime_rate_tract %>%
     fillOpacity = 0.7,
     color = "white",
     weight = 0.5,
-    group = "Crime Rate"
+    group = "Property Crime Rate"
   ) %>% 
   
   addLayersControl(
-    overlayGroups = c("Crime Rate"),
+    overlayGroups = c("Property Crime Rate"),
     options = layersControlOptions(collapsed = FALSE)
   ) %>% 
-  showGroup(c("Crime Rate")) %>% 
+  showGroup(c("Property Crime Rate")) %>% 
 
 #creating the legend for black population
   addLegend(
     position = "topleft", 
     pal = crime_rate_pal, 
     values = ~crime_rate, 
-    title = "Crime Rate<br>by Census Tract (2014-2018)",
-    labFormat = labelFormat(suffix = "%")
+    title = "2018 Property Crime Rate per 1000 residents<br>by Census Tract"
   )
 
-crime_map_2
+crime_map_2018
+
+htmlwidgets::saveWidget(crime_map_2018, "census_map_2018.html", selfcontained = TRUE)
 ```
 
-ggplot() +
-  geom_sf(data = bmore_property_crime_2014_2018_sf) +
-  geom_sf(data = bmore_census_data_MERGED_FINAL)
+labFormat = labelFormat(suffix = "%") 
 
 **Need to do: 
 
 REGRESSION
-2. prep data to be merged with census data
 3. merge with census data
 4. run basic regressions 
 
