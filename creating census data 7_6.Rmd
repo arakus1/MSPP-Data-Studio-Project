@@ -241,10 +241,10 @@ htmlwidgets::saveWidget(census_map, "census_map_final.html", selfcontained = TRU
 
 Prepping dataframe of only unemployment data: 
 ```{r}
-bmore_unemployment_rate <- bmore_census_data_MERGED_FINAL %>% 
+bmore_unemployment_rate_raw <- bmore_census_data_MERGED_FINAL %>% 
   select(GEOID, unemploy_rate_est, unemploy_rate_moe)
 
-bmore_unemployment_rate
+bmore_unemployment_rate_raw
 ```
 
 

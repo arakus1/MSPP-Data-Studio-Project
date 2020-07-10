@@ -173,13 +173,29 @@ htmlwidgets::saveWidget(crime_map_2018, "census_map_2018.html", selfcontained = 
 Analysis: 
 1. merge the census and crime data by geoid
 2. correlation coefficient 
-
-#NOT WORKING
 ```{r}
-left_join(bmore_unemployment_rate, bmore_crime_rate_2018, by = "GEOID")
+bmore_unemployment_rate_crime <- bmore_unemployment_rate_raw %>%
+  st_drop_geometry() %>%
+  left_join(st_drop_geometry(bmore_crime_rate_2018), by = "GEOID")
+
+bmore_unemployment_rate_crime
+
+#calculating the correlation coefficient
+UE_crime_pearson_correl <- cor.test(bmore_unemployment_rate_crime$unemploy_rate_est, bmore_unemployment_rate_crime$crime_rate, 
+                    method = "pearson")
+UE_crime_pearson_correl
+
+#plotting the correlation
+library("ggpubr")
+
+ggscatter(bmore_unemployment_rate_crime, x = "crime_rate", y = "unemploy_rate_est", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "2018 Property Crime Rate per 1000 residents", ylab = "Unemployment Rate (%)",
+          title = "Correlation between Unemployment Rates and Property Crime Rates \n in Baltimore Census Tracts Is Not Significant")
+
 
 ```
-
 
 
 
