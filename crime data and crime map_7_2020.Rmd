@@ -1,0 +1,211 @@
+---
+title: "Crime Data"
+author: "Ally Rakus"
+date: "6/22/2020"
+output: github_document
+---
+This is the R markdown file where I work with police department crime data from the Open Baltimore website. I extracted it as a csv rather than call with the site's API. 
+
+Calling the necessary packages 
+```{r message=FALSE}
+library(dplyr) # manipulate dataframes
+library(readr) # read/write3 dataframes
+library(ggplot2) # making plots
+```
+
+Import the crime data and reformat the date into the R date type (Y-M-D)
+```{r}
+library(readr)
+library(fs)
+
+#csv file can be found in github repo
+bmore_crime_data_6_22 <- read_csv(path("bmore crime data_6_22.csv"),
+ col_types = cols(
+   CrimeDate = col_date(format = "%m/%d/%Y")
+ )
+)
+
+bmore_crime_data_6_22
+
+```
+
+Filtering for incidents that occurred in years that match the census data (2014-2018)
+```{r}
+bmore_crime_data_2014_2018 <- filter(bmore_crime_data_6_22, between(CrimeDate, as.Date("2014-01-01"),as.Date("2018-12-31")))
+
+bmore_crime_data_2014_2018
+```
+
+Removing duplicate rows 
+```{r}
+library(janitor)
+bmore_crime_data_2014_2018 %>% get_dupes
+
+```
+
+Filtering for incidents considered to be property crime 
+```{r}
+bmore_property_crime_2014_2018 <- filter(bmore_crime_data_2014_2018, Description %in% c("BURGLARY", "LARCENY", "LARCENY FROM AUTO", "AUTO THEFT", "ARSON", "ROBBERY - STREET", "ROBBERY - CARJACKING", "ROBBERY - COMMERCIAL", "ROBBERY - RESIDENCE")
+)
+
+bmore_property_crime_2014_2018
+```
+
+Assigning a unique ID to each obs
+```{r}
+bmore_property_crime_2014_2018 %>% mutate(id = row_number())
+```
+
+Getting rid of incidents without coordinates/lat-long data and keeping variables of interest
+```{r}
+
+bmore_property_crime_2014_2018 %>% 
+  filter(!Longitude == "NA") %>% 
+  filter(!Latitude == "NA") %>% 
+  select(Latitude, Longitude, District, Description, CrimeTime, CrimeDate) 
+
+bmore_property_crime_2014_2018
+
+```
+
+Transforming the lat/lon data into spatial points 
+
+**na.fail = false dropped datapoints with missing values
+```{r}
+library(sf)
+
+bmore_property_crime_2014_2018_sf <- bmore_property_crime_2014_2018 %>% 
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326, na.fail = FALSE) %>% 
+  st_transform(6487) # https://epsg.io/6487
+```
+
+Calling Census population data - used to create crime rate for the census tracts
+```{r}
+library(tidycensus)
+
+census_api_key("d432da892f8a6ce576e962e7170b27cf7ef13f8d", overwrite = TRUE, install = TRUE) 
+
+bmore_tracts_pop <- get_acs(
+  geography = "tract", 
+  state = "MD",
+  county = c("510"),
+  variables = c("pop_num" = "B01001_001"),
+  survey = "acs5",
+  output = "wide",
+  year = 2018,
+  geometry = TRUE
+) %>% 
+  st_transform(6487)
+```
+
+Merging together census data and crime data
+```{r}
+
+bmore_crime_tract <- bmore_tracts_pop %>% 
+  st_join(bmore_property_crime_2014_2018_sf, join = st_intersects) %>%
+  mutate(year = year(CrimeDate)) %>%
+  group_by(GEOID, year) %>%
+  summarise(
+    pop_numE = max(pop_numE),
+    pop_numM = max(pop_numM),
+    n_crimes = n()
+  ) %>% 
+  ungroup()
+  
+ bmore_crime_tract 
+```
+
+Creating the 2018 crime rate per 1000 residents
+
+*chose only 2018 bc it was easier to create a crime rate for a certain year rather than try to create an average crime rate over the 5 year span due to time constraints 
+```{r}
+bmore_crime_rate_2018 <- bmore_crime_tract %>% 
+  filter(year == "2018") %>% 
+  mutate(
+    crime_rate = (n_crimes / na_if(pop_numE,0))*1000,
+    crime_rate_moe = moe_prop(n_crimes, na_if(pop_numE,0), n_crimes, pop_numM)
+  )
+
+bmore_crime_rate_2018
+```
+
+Creating 2018 crime map - crime rate per census tract
+```{r}
+#calling necessary packages
+library(leaflet)
+library(htmlwidgets)
+
+#color palette for crime rate
+crime_rate_pal <- colorBin(
+  palette = viridisLite::viridis(5), 
+  domain = bmore_crime_rate_2018$crime_rate, 
+  n = 4
+)
+
+#creating the map
+crime_map_2018 <- bmore_crime_rate_2018 %>% 
+  st_transform(4326) %>% 
+  leaflet() %>% 
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  
+#plotting the crime rate layer 
+  addPolygons(
+    fillColor = ~crime_rate_pal(crime_rate),
+    fillOpacity = 0.7,
+    color = "white",
+    weight = 0.5,
+    group = "Property Crime Rate"
+  ) %>% 
+  
+  addLayersControl(
+    overlayGroups = c("Property Crime Rate"),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>% 
+  showGroup(c("Property Crime Rate")) %>% 
+
+#creating the legend for crime rate
+  addLegend(
+    position = "topleft", 
+    pal = crime_rate_pal, 
+    values = ~crime_rate, 
+    title = "2018 Property Crime Rate per 1000 residents<br>by Census Tract"
+  )
+
+crime_map_2018
+
+htmlwidgets::saveWidget(crime_map_2018, "census_map_2018.html", selfcontained = TRUE)
+```
+
+Analysis: 
+1. merge the census and crime data by geoid
+2. correlation coefficient 
+```{r}
+bmore_unemployment_rate_crime <- bmore_unemployment_rate_raw %>%
+  st_drop_geometry() %>%
+  left_join(st_drop_geometry(bmore_crime_rate_2018), by = "GEOID")
+
+bmore_unemployment_rate_crime
+
+#calculating the pearson correlation coefficient
+UE_crime_pearson_correl <- cor.test(bmore_unemployment_rate_crime$unemploy_rate_est, bmore_unemployment_rate_crime$crime_rate, 
+                    method = "pearson")
+UE_crime_pearson_correl
+
+#plotting the correlation
+library("ggpubr")
+
+ggscatter(bmore_unemployment_rate_crime, x = "crime_rate", y = "unemploy_rate_est", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "2018 Property Crime Rate per 1000 residents", ylab = "Unemployment Rate (%)",
+          title = "Correlation between Unemployment Rates and Property Crime Rates \n in Baltimore Census Tracts Is Not Significant")
+
+
+```
+
+
+
+
+
+
+
