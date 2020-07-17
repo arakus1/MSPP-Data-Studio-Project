@@ -1,0 +1,9 @@
+This folder contains the final R markdown files and graphs of my Data Studio project. 
+
+File Names and Descriptions
+bmore crime data_6_22 = part I victim based crime data pulled from the Open Baltimore site on June 22, 2020
+census data and census maps_7_2020 = R markdown file created in July 2020 containing code that pulls and manipulates Baltimore census data, includes creation of visualization "bmore_census_map_race_UE"
+crime data and crime map_7_2020 = R markdown file created in July 2020 containing code that manipulated Baltimore crime data, including the creation of visualization "crime_map_2018" and "UE_crime_correl_plot_FINAL" 
+crime_map_2018 = interactive map of 2018 crime rate per 1000 residents at the census tract level in Baltimore MD
+bmore_census_map_race_UE = interactive map of Baltimore MD at the tract level with unemployment rates and black resident population percentage 
+UE_crime_correl_plot_FINAL = visual of Pearson Correlation between 2018 crime rates and unemployment rates 
