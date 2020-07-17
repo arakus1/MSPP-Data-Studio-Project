@@ -174,7 +174,7 @@ crime_map_2018 <- bmore_crime_rate_2018 %>%
 
 crime_map_2018
 
-htmlwidgets::saveWidget(crime_map_2018, "census_map_2018.html", selfcontained = TRUE)
+htmlwidgets::saveWidget(crime_map_2018, "crime_map_2018.html", selfcontained = TRUE)
 ```
 
 Analysis: 
