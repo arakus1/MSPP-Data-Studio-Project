@@ -1,0 +1,267 @@
+---
+title: "Census Data"
+author: "Ally Rakus"
+date: "7/16/2020"
+output: github_document
+---
+This is the R markdown file where I work with census data for Baltimore, MD at the census tract level. In this file, I call the data with an API, create variables, and visualize some of the data on an interactive map. 
+
+
+Calling the appropriate libraries needed for analysis and installing my Census API Key 
+```{r}
+library(tidyverse)
+library(tidycensus)
+library(sf)
+
+census_api_key("d432da892f8a6ce576e962e7170b27cf7ef13f8d", overwrite = TRUE, install = TRUE) 
+
+```
+
+Calling the variables I need: income, poverty rate, educational attainment, unemployment, & race
+
+1. Calling for income and poverty rate
+```{r}
+bmore_census_inc_pov <- get_acs(
+  geography = "tract", #tract level
+  state = "MD", #in Maryland
+  county = c("510"), #Baltimore City
+  variables = c(
+    "hh_inc_med" = "B19013_001", # median household income
+    "pov_pct" = "C17002_001" # poverty rate
+  ), 
+  survey = "acs5", #5 Year American Community Survey 
+  output = "wide", 
+  geometry = FALSE)
+
+bmore_census_inc_pov #viewing the new dataframe 
+```
+
+2. Calling for the employment status table->allow me to make an unemployment rate variable 
+```{r}
+bmore_census_unemploy <- get_acs(
+  geography = "tract", 
+  state = "MD",
+  county = c("510"),
+  table = "B23001", #employment status table 
+  survey = "acs5",
+  output = "wide",
+  geometry = FALSE)
+bmore_census_unemploy
+```
+Creating variables: labor force & unemployed to then make unemployment rate
+```{r}
+bmore_census_unemployment <- bmore_census_unemploy %>% 
+  rowwise() %>% 
+  mutate(
+    
+    laborforce_est = sum(
+      c_across(matches("B23001_0{0,2}(6|13|20|27|34|41|48|55|62|69|74|79|84|92|99|106|113|120|127|134|141|148|155|160|165|170)E"))
+    ), #creating labor force estimate
+    
+    laborforce_moe = moe_sum(
+      moe = c_across(matches("B23001_0{0,2}(6|13|20|27|34|41|48|55|62|69|74|79|84|92|99|106|113|120|127|134|141|148|155|160|165|170)M")),
+      estimate = laborforce_est
+    ), #creating labor force margin of error
+    
+    pop_unemployed_est = sum(
+      c_across(c(matches("B23001_0{0,2}(8|15|22|29|36|43|50|57|64|71|76|81|86|94|101|108|115|122|129|136|143|150|157|162|167|172)E")))
+    ), #creating unemployed estimate
+    
+    pop_unemployed_moe = moe_sum(
+      moe = c_across(c(matches("B23001_0{0,2}(8|15|22|29|36|43|50|57|64|71|76|81|86|94|101|108|115|122|129|136|143|150|157|162|167|172)M"))),
+      estimate = pop_unemployed_est)
+  )%>% 
+  ungroup() %>%
+  mutate(
+    unemploy_rate_est = pop_unemployed_est / na_if(laborforce_est,0), #creating unemployment rate
+    
+    unemploy_rate_moe = moe_prop(pop_unemployed_est, na_if(laborforce_est,0), pop_unemployed_moe, laborforce_moe) #creating unemployment rate margin of error
+  )
+
+# just for this preview, remove all columns matching this pattern, so we can
+# more easily see our new columns
+bmore_census_unemployment %>% 
+  select(-matches("B\\d{5}_\\d{3}."))
+```
+
+3. Calling the education table to create educational attainment variables
+```{r}
+bmore_census_educ <- get_acs(
+  geography = "tract", 
+  state = "MD",
+  county = c("510"),
+  table = "B15003", #table with education info
+  survey = "acs5",
+  output = "wide",
+  geometry = FALSE)
+bmore_census_educ
+```
+
+Creating the variables: no high school education and some college or more education (2 education groups)
+```{r}
+bmore_census_education <- bmore_census_educ %>%
+  mutate(
+    pop_edu_denom_est = B15003_001E, #renaming the variables from the table
+    pop_edu_denom_moe = B15003_001M,
+  ) %>%
+  rowwise() %>%
+  mutate(
+    pop_edu_nohs_num_est = sum(c_across(c(matches("B15003_0{0,2}(2|3|4|5|6|7|8|9|10|11|12|13|14|15|16)E")))), #creating the no high school education variable
+    
+    pop_edu_nohs_num_moe = moe_sum(
+      moe = c_across(c(matches("B15003_0{0,2}(2|3|4|5|6|7|8|9|10|11|12|13|14|15|16)M"))),
+      estimate = pop_edu_nohs_num_est
+    ),#creating the no HS ed margin of error variable
+    
+    pop_edu_somecoll_plus_est = sum(c_across(c(matches("B15003_0{0,2}(19|20|21|22|23|24|25)E")))),#creating the some college plus education variable
+    
+    pop_edu_somecoll_plus_moe = moe_sum(
+      moe = c_across(c(matches("B15003_0{0,2}(19|20|21|22|23|24|25)M"))),
+      estimate = pop_edu_somecoll_plus_est
+    ) #creating the some college plus margin of error variable
+  ) %>%
+  
+#below - creating the percentage variables of each education group
+  ungroup() %>% 
+  mutate(
+    noHS_educ_pct = pop_edu_nohs_num_est / na_if (pop_edu_denom_est, 0),
+    noHS_educ_pct_moe = pop_edu_nohs_num_moe / na_if (pop_edu_denom_moe, 0),
+    somecollege_plus_pct = pop_edu_somecoll_plus_est / na_if (pop_edu_denom_est, 0),
+    somecollege_plus_pct_moe = pop_edu_somecoll_plus_moe / na_if (pop_edu_denom_moe,0)
+  )
+  
+bmore_census_education %>% 
+  select(-matches("B\\d{5}_\\d{3}."))
+```
+
+Calling the race variables 
+```{r}
+bmore_census_r<- get_acs(
+  geography = "tract", 
+  state = "MD",
+  county = c("510"),
+  variables = c(
+    "race_denom" = "B02001_001", #denominator to calculate race percentage
+    "black_num" = "B02009_001"), #numerator to calculate the percentage of black residents
+  survey = "acs5",
+  output = "wide",
+  geometry = TRUE) %>% 
+  as_tibble() %>% # for nicer printing
+  st_as_sf() # make sure to add back the spatial class
+
+bmore_census_r
+```
+
+Creating the race variable: percentage of black alone and black and other races in a tract 
+```{r}
+bmore_census_race <- bmore_census_r %>% 
+  mutate(
+    pct_black_est = black_numE / na_if(race_denomE,0),
+    pct_black_moe = moe_prop(black_numE, na_if(race_denomE,0), black_numM, race_denomM)
+  )
+
+bmore_census_race
+```
+
+Creating one dataframe for all the variables
+```{r}
+# Because "bmore_census_race" is a spatial dataframe, when we join onto it all
+# the resulting dataframes keep the spatial class.
+
+bmore_census_data_f <- left_join(bmore_census_race, bmore_census_education, by = "GEOID")
+
+bmore_census_data_fi <- left_join(bmore_census_data_f, bmore_census_unemployment, by = "GEOID")
+
+bmore_census_data_merged <- left_join(bmore_census_data_fi, bmore_census_inc_pov, by = "GEOID")
+
+#creating the final dataframe keeping only important variables 
+bmore_census_data_MERGED_FINAL <- bmore_census_data_merged %>% select(GEOID, pct_black_est, pct_black_moe, noHS_educ_pct, noHS_educ_pct_moe, somecollege_plus_pct, somecollege_plus_pct_moe, unemploy_rate_est, unemploy_rate_moe, hh_inc_medE, hh_inc_medM, pov_pctE, pov_pctM)
+
+bmore_census_data_MERGED_FINAL
+```
+
+Creating a map of census tracts including unemployment rate and percentage of black residents 
+```{r}
+#calling the needed packages
+library(leaflet)
+library(htmlwidgets)
+
+#color palette for black pop percentage layer
+pop_blck_pct_pal <- colorBin(
+  palette = viridisLite::viridis(5), 
+  domain = bmore_census_data_MERGED_FINAL$pct_black_est, 
+  n = 4
+)
+
+#color palette for unemployment rate 
+unemployment_pal <- colorBin(
+  palette = viridisLite::viridis(5), 
+  domain = bmore_census_data_MERGED_FINAL$unemploy_rate_est, 
+  n = 4
+)
+
+#creating the map
+bmore_census_map_race_UE <- bmore_census_data_MERGED_FINAL %>% 
+  st_transform(4326) %>% 
+  leaflet() %>% 
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  
+#plotting the black pop percentage layer 
+  addPolygons(
+    fillColor = ~pop_blck_pct_pal(pct_black_est),
+    fillOpacity = 0.7,
+    color = "white",
+    weight = 0.5,
+    group = "Black Population Percentage"
+  ) %>% 
+  
+#plotting the unemployment rate layer 
+  addPolygons(
+    fillColor = ~unemployment_pal(unemploy_rate_est),
+    fillOpacity = 0.7,
+    color = "white",
+    weight = 0.5,
+    group = "Unemployment Rate"
+  ) %>% 
+
+#plotting the control panel   
+  addLayersControl(
+    overlayGroups = c("Black Population Percentage", "Unemployment Rate"),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>% 
+  showGroup(c("Black Population Percentage")) %>% 
+
+#creating the legend for black pop percentage
+  addLegend(
+    position = "topleft", 
+    pal = pop_blck_pct_pal, 
+    values = ~pct_black_est, 
+    title = "Black Population Percentage<br>by Census Tract (2014-2018)",
+    labFormat = labelFormat(suffix = "%", transform = function(x) 100 * x)
+  ) %>% 
+
+#creating the legend for the unemployment rate    
+  addLegend(
+    position = "topright", 
+    pal = unemployment_pal, 
+    values = ~unemploy_rate_est, 
+    title = "Unemployment Rate<br>by Census Tract (2014-2018)",
+    labFormat = labelFormat(suffix = "%", transform = function(x) 100 * x)
+  )
+
+bmore_census_map_race_UE
+
+#saving the map as an html link 
+htmlwidgets::saveWidget(bmore_census_map_race_UE, "bmore_census_map_race_UE.html", selfcontained = TRUE)
+
+```
+
+Prepping dataframe of only unemployment data - to be used for correlation analysis: 
+```{r}
+bmore_unemployment_rate_raw <- bmore_census_data_MERGED_FINAL %>% 
+  select(GEOID, unemploy_rate_est, unemploy_rate_moe)
+
+bmore_unemployment_rate_raw
+```
+
+
